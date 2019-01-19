@@ -83,8 +83,13 @@ class InputProcess(Process):
             self._queue.put(message)
             # TODO: Catch full exception.
 
-    def execution_loop(self):
-        """
+    def execution_loop(self, topic):
+        """The main execution loop for an input process, to be 
+        implemented by a subclass.
+        
+        Each subclass of the InputProcess should implement their own
+        execution loop, which receives a Topic object and adds Message
+        objects to the queue until interrupted.
         """
         raise NotImplementedError('To be implemented by subclasses.')
 
