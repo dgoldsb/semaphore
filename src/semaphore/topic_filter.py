@@ -1,0 +1,1 @@
+# TODO: topic filtering should be an object, as it should be as simple or complicated as you want to make it.

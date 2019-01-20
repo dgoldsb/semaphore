@@ -1,0 +1,2 @@
+# TODO: read Trump posts from several subreddits, post them to a CSV for analysis with sentiment and timestamp, as well as a simple markdown dump with a silly separator.
+# TODO: ask credentials in CMD, then create credentials file in ignore.

@@ -1,0 +1,1 @@
+# TODO: test the basic functionalities with a dummy logger that emits to a variable, with two simple generators with waits as inputs.
