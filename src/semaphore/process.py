@@ -16,7 +16,7 @@ class Process:
     def execution_loop(self):
         """
         """
-        raise NotImplementedError('To be implemented by subclasses.')
+        raise NotImplementedError('To be implemented by subclasses')
 
 
 # TODO: blank middle-process.
@@ -49,7 +49,7 @@ class MiddlewareProcess(Process):
     def process_message(self, message):
         """
         """
-        raise NotImplementedError('To be implemented by subclasses.')
+        raise NotImplementedError('To be implemented by subclasses')
 
     def execution_loop(self):
         """
@@ -91,7 +91,7 @@ class InputProcess(Process):
         execution loop, which receives a Topic object and adds Message
         objects to the queue until interrupted.
         """
-        raise NotImplementedError('To be implemented by subclasses.')
+        raise NotImplementedError('To be implemented by subclasses')
 
 # TODO: twitter input process.
 
