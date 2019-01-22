@@ -1,1 +1,12 @@
-# TODO: topic filtering should be an object, as it should be as simple or complicated as you want to make it.
+"""Something functor.
+
+Description.
+"""
+
+
+class TopicFilter:
+    def __call__(self, message):
+        return self.filter(message)
+
+    def filter(self, message):
+        raise NotImplementedError('Implement filter method in a subclass')

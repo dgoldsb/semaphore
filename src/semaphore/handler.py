@@ -30,7 +30,7 @@ class Handler:
     """
     def __init__(self, name):
         self._formatter = Formatter()
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._name = name
 
     @property
@@ -68,20 +68,21 @@ class SlackPostFailureError(Exception):
 
 
 class SlackHandler(Handler):
-    def __init__(self, token, channel, name, icon):
+    def __init__(self, name, token, channel, bot_name, icon):
         """Initializes the Handler by creating a Slack client.
 
+        :param name: name of the handler (type=str)
         :param token: API token for a Slack Integration (type=str)
         :param channel: channel ID to post messages to (type=str)
-        :param name: name of the bot (type=str)
+        :param bot_name: name of the bot (type=str)
         :param icon: icon to use as picture for the bot (type=str)
         """
-        super().__init__()
+        super().__init__(name)
 
         #: Channel ID to post messages to
         self._channel = channel
         #: Name used by the posting Python bot
-        self._name = name
+        self._bot_name = bot_name
         #: Icon used as profile picture by Python bot
         self._icon = icon
         #: Slack client instance
@@ -112,13 +113,13 @@ class StreamHandler(Handler):
     to a stream. Note that this class does not close the stream, as
     sys.stdout or sys.stderr may be used.
     """
-    def __init__(self, stream=None, terminator='\n'):
+    def __init__(self, name, stream=None, terminator='\n'):
         """
         Initialize the handler.
 
         If stream is not specified, sys.stderr is used.
         """
-        Handler.__init__(self)
+        super().__init__(name)
 
         #:
         self.terminator = terminator
@@ -177,10 +178,10 @@ class StreamHandler(Handler):
 
 
 class FileHandler(StreamHandler):
-    def __init__(self, filename, mode='a', encoding=None):
+    def __init__(self, name, filename, mode='a', encoding=None):
         """Open the specified file and use it as the stream for logging.
         """
-        super().__init__()
+        super().__init__(name)
         filename = os.fspath(filename)
 
         #:

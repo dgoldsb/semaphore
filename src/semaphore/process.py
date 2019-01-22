@@ -3,6 +3,7 @@
 Usage paragraph.
 """
 
+import asyncio
 import threading
 import time
 
@@ -18,10 +19,10 @@ class Process:
     def __init__(self, logger):
         """Provide a lock for concurrent access to queues.
         """
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._logger = logger
 
-    def execution_loop(self):
+    async def execution_loop(self):
         """To be implemented by subclasses.
         """
         raise NotImplementedError('To be implemented by subclasses')
@@ -31,33 +32,44 @@ class Process:
 class InputProcess(Process):
     """
     """
-    def __init__(self, queue, logger):
+    def __init__(self, name, queue, logger):
         """
         """
         super().__init__(logger)
 
         #:
+        self._name = name
+        #:
         self._queue = queue
         #:
-        self._topic = None
+        self._topic_filter = None  # TODO: check if this is right class.
 
     def _put_message(self, message):
         """
         """
-        with self._lock:
-            self._queue.put(message)
-            # TODO: Catch full exception.
+        if self._topic_filter is None:
+            raise ValueError('Topic filter has not been supplied')
+
+        if self._topic_filter(message):
+            self._logger.debug(f'Putting message {message.body}')
+            with self._lock:
+                self._queue.put(message)
+                # TODO: Catch full exception.
 
     @property
-    def topic(self):
-        return self._topic
+    def name(self):
+        return self._name
 
-    @topic.setter
-    def topic(self, topic):
-        # TODO: test if it is valid.
-        self._topic = topic
+    @property
+    def topic_filter(self):
+        return self._topic_filter
 
-    def execution_loop(self):
+    @topic_filter.setter
+    def topic_filter(self, topic_filter):
+        # TODO: test if it is valid, if not remove this boilerplate.
+        self._topic_filter = topic_filter
+
+    async def execution_loop(self):
         """The main execution loop for an input process, to be 
         implemented by a subclass.
         
@@ -84,23 +96,26 @@ class MiddlewareProcess(Process):
     def __init__(self, input_queue, output_queue, logger):
         """
         """
+        super().__init__(logger)
         self._input_queue = input_queue
         self._output_queue = output_queue
-        super().__init__(logger)
 
     def _get_message(self):
         """
         """
         with self._lock:
             try:
-                return self._input_queue.get(False)
+                message = self._input_queue.get(False)
+                self._logger.debug(f'Got message {message.body}')
+                return message
             except self._input_queue.Empty:
-                raise  self._input_queue.Empty
+                raise self._input_queue.Empty
 
     def _put_message(self, message):
         """
         """
         with self._lock:
+            self._logger.debug(f'Putting message {message.body}')
             self._output_queue.put(message)
             # TODO: Catch full exception.
 
@@ -109,7 +124,7 @@ class MiddlewareProcess(Process):
         """
         return message
 
-    def execution_loop(self):
+    async def execution_loop(self):
         """
         """
         while True:
@@ -118,7 +133,7 @@ class MiddlewareProcess(Process):
                 message = self.process_message(message)
                 self._put_message(message)
             except self._input_queue.Empty:
-                time.sleep(1)
+                await time.sleep(1)
 
 
 # TODO: sentiment middle-process.
@@ -138,9 +153,9 @@ class OutputProcess(Process):
     def __init__(self, queue, logger):
         """
         """
-        self._queue = queue
-        self._output_handlers = set()
         super().__init__(logger)
+        self._queue = queue
+        self._output_handlers = set()  # TODO: name : instance dict?
 
     def _get_message(self):
         """
@@ -164,7 +179,7 @@ class OutputProcess(Process):
     def delete_handler(self, handler):
         self._output_handlers.remove(handler)
 
-    def execution_loop(self):
+    async def execution_loop(self):
         """
         """
         # Set up coroutines for all handlers.
@@ -174,7 +189,38 @@ class OutputProcess(Process):
         while True:
             try:
                 message = self._get_message()
+                self._logger.debug(f'Posting {message.body}')
                 for coroutine in handler_coroutines:
                     coroutine.send(message)
             except self._queue.Empty:
-                time.sleep(1)
+                await time.sleep(1)
+
+
+class SemaphoreTimeLimitInterrupt(Exception):
+    def __init__(self, message):
+        # Call the base class constructor with the parameters it needs.
+        super().__init__(message)
+
+
+class TimeLimitProcess(Process):
+    """
+    """
+    def __init__(self, time_limit, logger):
+        """
+        """
+        super().__init__(logger)
+        self._time_limit = time_limit
+
+    async def execution_loop(self):
+        """
+        """
+        start_time = time.time()
+        while True:
+            time_left = self._time_limit - (time.time() - start_time)
+            if time_left >= 0:
+                raise SemaphoreTimeLimitInterrupt('Finished after {}s'.format(
+                    self._time_limit))
+            else:
+                self._logger.debug(f'Still {time_left}s left')
+
+            await time.sleep(1)

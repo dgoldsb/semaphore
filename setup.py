@@ -16,14 +16,11 @@ setup(
     package_data={},
     namespace_packages=[],
 
-    setup_requires=['pytest-runner'],
+    setup_requires=[],
 
     install_requires=[],
 
     tests_require=[
-        'pytest',
-        'pytest-cov',
-        'pytest-pylint'
     ],
 
     classifiers=[
